@@ -48,20 +48,7 @@ php bin/console cache:clear
 
 ## Configuration
 
-### 1. Create Custom Field
-
-Before using the plugin, create a custom contact field:
-
-1. Go to **Settings** → **Custom Fields**
-2. Click **New**
-3. Configure the field:
-   - **Label**: Deliverability Status
-   - **Alias**: `deliverability_status` (must match exactly)
-   - **Type**: Text or Select
-   - **Group**: Core or Contact
-4. Click **Save & Close**
-
-### 2. Configure API Settings
+### 1. Configure API Settings
 
 1. Go to **Settings** → **Plugins**
 2. Find **Email Deliverability Plugin** and click on it
@@ -72,7 +59,7 @@ Before using the plugin, create a custom contact field:
    - **API Key**: Get your API key from [https://emaildelivery.space/](https://emaildelivery.space/)
 6. Click **Save & Close**
 
-### 3. Clear Cache
+### 2. Clear Cache
 ```bash
 php bin/console cache:clear
 ```
@@ -81,9 +68,10 @@ php bin/console cache:clear
 
 Once installed and configured, the plugin works automatically:
 
-1. **New Contacts**: When a new contact is created (via form, API, or manual entry), the plugin automatically checks the email deliverability
-2. **Updated Contacts**: When a contact's email is updated, the plugin re-validates if the status is empty or "not_checked"
-3. **Status Field**: The deliverability status is stored in the `deliverability_status` custom field
+1. **Custom Field Creation**: The plugin automatically creates a `deliverability_status` custom field on first use if it doesn't exist
+2. **New Contacts**: When a new contact is created (via form, API, or manual entry), the plugin automatically checks the email deliverability
+3. **Updated Contacts**: When a contact's email is updated, the plugin re-validates if the status is empty or "not_checked"
+4. **Status Field**: The deliverability status is stored in the `deliverability_status` custom field
 
 ### Deliverability Statuses
 
@@ -124,7 +112,8 @@ The plugin sends email validation requests to the API and processes the response
 
 2. **Verify custom field exists**:
    - Go to Settings → Custom Fields
-   - Look for field with alias `deliverability_status`
+   - The plugin should have automatically created a field with alias `deliverability_status`
+   - If not, the plugin will create it on the first contact save
 
 3. **Check logs**:
 ```bash
@@ -145,9 +134,9 @@ The plugin sends email validation requests to the API and processes the response
 
 2. **Test API endpoint manually**:
 ```bash
-   curl -X POST https://emaildelivery.space/me/checkemail \
+   curl -X GET https://emaildelivery.space/me/checkemail?email=inboxfull1@gmail.com \
      -H "Content-Type: application/json" \
-     -d '{"email":"test@example.com","api_key":"your-key"}'
+     -d '{"api_key":"your-key"}'
 ```
 
 3. **Check API credentials** in plugin configuration
