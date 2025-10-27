@@ -35,8 +35,7 @@ class DeliverabilityChecker
             $this->logger->warning('Email Deliverability plugin is not configured or enabled');
             return 'unknown';
         }
-
-        $apiUrl = $integration->getApiUrl();
+        $apiUrl = $integration->getCheckEmailUrl();
         $apiKey = $integration->getApiKey();
 
         $this->logger->info('DeliverabilityChecker check called', [
@@ -52,7 +51,7 @@ class DeliverabilityChecker
 
         $url = rtrim($apiUrl, '/') . '?email=' . urlencode($email);
         
-        $this->logger->info('Making API request', ['url' => $url]);
+        $this->logger->error('Making API request', ['url' => $url]);
         
         $options = [
             'http' => [
@@ -149,7 +148,7 @@ class DeliverabilityChecker
             return false;
         }
 
-        $apiUrl = $integration->getApiUrl();
+        $apiUrl = $integration->getCheckEmailUrl();
         return !empty($apiUrl);
     }
 
@@ -166,6 +165,7 @@ class DeliverabilityChecker
             return null;
         }
 
-        return $integration->getApiUrl();
+        $apiUrl = $integration->getCheckEmailUrl();
+        return $apiUrl;
     }
 }

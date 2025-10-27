@@ -2,6 +2,7 @@
 
 namespace MauticPlugin\EmailDeliverabilityBundle\EventListener;
 
+use Doctrine\DBAL\Connection;
 use Mautic\CoreBundle\CoreEvents;
 use Mautic\CoreBundle\Event\CustomButtonEvent;
 use Mautic\LeadBundle\Entity\LeadField;
@@ -13,10 +14,12 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 class PluginSubscriber implements EventSubscriberInterface
 {
     private $fieldModel;
+    private $connection;
 
-    public function __construct(FieldModel $fieldModel)
+    public function __construct(FieldModel $fieldModel, Connection $connection)
     {
         $this->fieldModel = $fieldModel;
+        $this->connection = $connection;
     }
 
     public static function getSubscribedEvents()
@@ -37,6 +40,7 @@ class PluginSubscriber implements EventSubscriberInterface
         }
 
         $this->createCustomField();
+        $this->createDatabaseColumn();
     }
 
     public function onPluginUpdate(PluginInstallEvent $event)
@@ -48,6 +52,7 @@ class PluginSubscriber implements EventSubscriberInterface
         }
 
         $this->createCustomField();
+        $this->createDatabaseColumn();
     }
 
     private function createCustomField()
@@ -69,7 +74,10 @@ class PluginSubscriber implements EventSubscriberInterface
         $field->setObject('lead'); // 'lead' for contacts
         $field->setGroup('core'); // or 'professional', 'social', etc.
         $field->setIsPublished(true);
-        
+        $field->setIsListable(true); // ADD THIS LINE - Shows in contact list
+        $field->setIsShortVisible(true); // ADD THIS LINE - Visible by default
+        $field->setDefaultValue('not_checked'); // ADD THIS LINE        
+
         // If it's a select field, add options
         $field->setProperties([
             'list' => [
@@ -77,11 +85,26 @@ class PluginSubscriber implements EventSubscriberInterface
                 ['label' => 'Hard Bounce', 'value' => 'hard_bounce'],
                 ['label' => 'Soft Bounce', 'value' => 'soft_bounce'],
                 ['label' => 'Unknown', 'value' => 'unknown'],
-                ['label' => 'Invalid', 'value' => 'invalid'],
                 ['label' => 'Not Checked', 'value' => 'not_checked'],
             ]
         ]);
 
         $this->fieldModel->saveEntity($field);
+    }
+
+    private function createDatabaseColumn()
+    {
+        // Check if column exists
+        $schemaManager = $this->connection->createSchemaManager();
+        $columns = $schemaManager->listTableColumns('leads');
+        
+        if (isset($columns['deliverability_status'])) {
+            return; // Column already exists
+        }
+        
+        // Add column to leads table
+        $this->connection->executeStatement(
+            "ALTER TABLE leads ADD COLUMN deliverability_status VARCHAR(50) NULL DEFAULT 'not_checked'"
+        );
     }
 }

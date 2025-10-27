@@ -10,7 +10,7 @@ return [
     'services' => [
         'events' => [
             'mautic.plugin.emaildeliverability.subscriber' => [
-                'class'     => \MauticPlugin\EmailDeliverabilityBundle\EventListener\ContactSubscriber::class,
+                'class'  => \MauticPlugin\EmailDeliverabilityBundle\EventListener\ContactSubscriber::class,
                 'arguments' => [
                     'mautic.plugin.emaildeliverability.helper',
                     'mautic.lead.model.lead',
@@ -21,9 +21,27 @@ return [
                 ],
             ],
             'mautic.plugin.emaildeliverability.plugin_subscriber' => [
-                'class'     => \MauticPlugin\EmailDeliverabilityBundle\EventListener\PluginSubscriber::class,
+                'class'  => \MauticPlugin\EmailDeliverabilityBundle\EventListener\PluginSubscriber::class,
                 'arguments' => [
                     'mautic.lead.model.field',
+                    'database_connection',
+                ],
+            ],
+            'mautic.plugin.emaildeliverability.subscriber.email_send' => [
+                'class' => \MauticPlugin\EmailDeliverabilityBundle\EventListener\EmailSendSubscriber::class,
+                'arguments' => [
+                    'mautic.emaildeliverability.service.delivery_reporter',
+                    'mautic.lead.model.lead',
+                ],
+                'tags' => [
+                    'kernel.event_subscriber',
+                ],
+            ],
+            'mautic.plugin.emaildeliverability.bounce_subscriber' => [
+                'class' => \MauticPlugin\EmailDeliverabilityBundle\EventListener\BounceSubscriber::class,
+                'arguments' => [
+                    'mautic.lead.model.lead',
+                    'monolog.logger.mautic',
                 ],
             ],
         ],
@@ -56,6 +74,13 @@ return [
                 'arguments' => [
                     'mautic.helper.integration',
                     'monolog.logger.mautic',
+                ],
+            ],
+            'mautic.emaildeliverability.service.delivery_reporter' => [
+                'class' => \MauticPlugin\EmailDeliverabilityBundle\Service\DeliveryReporter::class,
+                'arguments' => [
+                    'monolog.logger.mautic',
+                    'mautic.helper.integration',
                 ],
             ],
         ],

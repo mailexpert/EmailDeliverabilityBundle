@@ -1,11 +1,8 @@
 <?php
 declare(strict_types=1);
-
 namespace MauticPlugin\EmailDeliverabilityBundle\Integration;
-
 use Mautic\PluginBundle\Integration\AbstractIntegration;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
-
 class EmailDeliverabilityIntegration extends AbstractIntegration
 {
     /**
@@ -15,7 +12,6 @@ class EmailDeliverabilityIntegration extends AbstractIntegration
     {
         return 'EmailDeliverability';
     }
-
     /**
      * @return string
      */
@@ -23,7 +19,6 @@ class EmailDeliverabilityIntegration extends AbstractIntegration
     {
         return 'Email Deliverability Checker';
     }
-
     /**
      * @return string
      */
@@ -31,7 +26,6 @@ class EmailDeliverabilityIntegration extends AbstractIntegration
     {
         return 'none';
     }
-
     /**
      * @return array
      */
@@ -39,7 +33,6 @@ class EmailDeliverabilityIntegration extends AbstractIntegration
     {
         return [];
     }
-
     /**
      * @return array
      */
@@ -50,7 +43,6 @@ class EmailDeliverabilityIntegration extends AbstractIntegration
             'api_key' => 'mautic.emaildeliverability.config.api_key',
         ];
     }
-
     /**
      * Get default values for keys
      *
@@ -62,12 +54,11 @@ class EmailDeliverabilityIntegration extends AbstractIntegration
         
         // Set default values if not configured
         if (empty($keys['api_url'])) {
-            $keys['api_url'] = 'https://emaildelivery.space/me/checkemail';
+            $keys['api_url'] = 'https://emaildelivery.space/';
         }
         
         return $keys;
     }
-
     /**
      * Get the icon for the integration
      *
@@ -77,18 +68,19 @@ class EmailDeliverabilityIntegration extends AbstractIntegration
     {
         return 'plugins/EmailDeliverabilityBundle/Assets/img/icon.png';
     }
-
     /**
-     * Get API URL from configuration
+     * Get base API URL from configuration
      *
      * @return string
      */
     public function getApiUrl(): string
     {
         $keys = $this->getKeys();
-        return isset($keys['api_url']) ? $keys['api_url'] : 'https://emaildelivery.space/me/checkemail';
+        $url = isset($keys['api_url']) ? $keys['api_url'] : 'https://emaildelivery.space/';
+        
+        // Ensure trailing slash
+        return rtrim($url, '/') . '/';
     }
-
     /**
      * Get API Key from configuration
      *
@@ -98,5 +90,25 @@ class EmailDeliverabilityIntegration extends AbstractIntegration
     {
         $keys = $this->getKeys();
         return isset($keys['api_key']) ? $keys['api_key'] : '';
+    }
+    
+    /**
+     * Get check email endpoint URL
+     *
+     * @return string
+     */
+    public function getCheckEmailUrl(): string
+    {
+        return $this->getApiUrl() . 'me/checkemail';
+    }
+    
+    /**
+     * Get submit endpoint URL
+     *
+     * @return string
+     */
+    public function getSubmitUrl(): string
+    {
+        return $this->getApiUrl() . 'me/submit';
     }
 }
