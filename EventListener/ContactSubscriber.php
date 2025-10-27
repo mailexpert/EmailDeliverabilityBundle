@@ -34,8 +34,8 @@ class ContactSubscriber implements EventSubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
-            //LeadEvents::LEAD_PRE_SAVE => ['onContactPreSave', 0],
-            LeadEvents::LEAD_POST_SAVE => ['onContactPostSave', 0],
+            LeadEvents::LEAD_PRE_SAVE => ['onContactPreSave', 0],
+            //LeadEvents::LEAD_POST_SAVE => ['onContactPostSave', 0],
             CoreEvents::VIEW_INJECT_CUSTOM_CONTENT => ['onViewInjectCustomContent', 0],
         ];
     }
@@ -126,17 +126,23 @@ class ContactSubscriber implements EventSubscriberInterface
             file_put_contents('/tmp/deliverability_debug.log', date('Y-m-d H:i:s') . " - Already has valid status\n", FILE_APPEND);
             return;
         }
-
-        $status = $this->checker->check($email);
+        $this->logger->error('processLead calling check', []);
+        $new_status = $this->checker->check($email);
         
-        file_put_contents('/tmp/deliverability_debug.log', date('Y-m-d H:i:s') . " - API returned: $status\n", FILE_APPEND);
+        file_put_contents('/tmp/deliverability_debug.log', date('Y-m-d H:i:s') . " - API returned: $new_status currentStatus $currentStatus \n", FILE_APPEND);
         
-        $lead->addUpdatedField('deliverability_status', $status);
+        $lead->addUpdatedField('deliverability_status', $new_status);
         
-        if ($stage === 'POST') {
+        $this->logger->error('processLead values ', ['new_status' => $new_status, 'currentStatus' => $currentStatus]);
+        if ($stage === 'POST' && $currentStatus !== $new_status) {
             // Save again in POST_SAVE
-            $this->leadModel->saveEntity($lead, false);
-            file_put_contents('/tmp/deliverability_debug.log', date('Y-m-d H:i:s') . " - Saved in POST_SAVE\n", FILE_APPEND);
+            file_put_contents('/tmp/deliverability_debug.log', date('Y-m-d H:i:s') . " - Saving in POST_SAVE\n", FILE_APPEND);
+            $this->logger->error('Saving in POST_SAVE');
+            //$this->leadModel->saveEntity($lead, false);
+        }
+        else {
+            $this->logger->error('No need to saveeeE');
+            file_put_contents('/tmp/deliverability_debug.log', date('Y-m-d H:i:s') . " - No need to save\n", FILE_APPEND);
         }
         
         self::$processed[$leadId] = true;
