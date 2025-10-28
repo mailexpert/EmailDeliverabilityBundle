@@ -4,7 +4,7 @@ declare(strict_types=1);
 return [
     'name'        => 'Email Deliverability Plugin',
     'description' => 'Checks contact email deliverability using external API.',
-    'version'     => '1.1',
+    'version'     => '1.3',
     'author'      => 'Mail Xpert',
     
     'services' => [

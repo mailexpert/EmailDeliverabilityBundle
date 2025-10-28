@@ -1,0 +1,32 @@
+{
+  "name": "mailxpert/email-deliverability-bundle",
+  "description": "Checks contact email deliverability using external API.",
+  "type": "mautic-plugin",
+  "version": "1.3.0",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Mail Xpert",
+      "email": "support@emaildelivery.space",
+      "homepage": "https://emaildelivery.space/"
+    }
+  ],
+  "require": {
+    "php": ">=7.4",
+    "mautic/core-lib": "^5.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "MauticPlugin\\EmailDeliverabilityBundle\\": ""
+    }
+  },
+  "extra": {
+    "mautic": {
+      "name": "Email Deliverability Plugin",
+      "description": "Checks contact email deliverability using external API.",
+      "version": "1.3",
+      "author": "Mail Xpert"
+    }
+  }
+}
+
