@@ -8,6 +8,7 @@ use Mautic\CoreBundle\Event\CustomButtonEvent;
 use Mautic\LeadBundle\Entity\LeadField;
 use Mautic\LeadBundle\Model\FieldModel;
 use Mautic\PluginBundle\Event\PluginInstallEvent;
+use Mautic\PluginBundle\Event\PluginUpdateEvent;
 use Mautic\PluginBundle\PluginEvents;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -43,7 +44,7 @@ class PluginSubscriber implements EventSubscriberInterface
         $this->createDatabaseColumn();
     }
 
-    public function onPluginUpdate(PluginInstallEvent $event)
+    public function onPluginUpdate(PluginUpdateEvent $event)
     {
         $plugin = $event->getPlugin();
         
