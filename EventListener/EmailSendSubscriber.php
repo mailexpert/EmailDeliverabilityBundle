@@ -74,16 +74,18 @@ class EmailSendSubscriber implements EventSubscriberInterface
                     // Update deliverability status
                     $currentStatus = $lead->getFieldValue('deliverability_status');
                     if ($currentStatus !== 'soft_bounce') {
-                        $lead->addUpdatedField('deliverability_status', 'soft_bounce');
-                        $this->leadModel->saveEntity($lead, false);
-                        file_put_contents('/tmp/bounce_debug.log', date('Y-m-d H:i:s') . " - Updated status to bounced\n", FILE_APPEND);
-                        $this->deliveryReporter->reportFailure(
+                        $apiSucceeded = $this->deliveryReporter->reportFailure(
                             $email,
                             new \DateTime(),
                             "",
                             "",
                             'soft_bounce'
                         );
+                        if ($apiSucceeded) {
+                            $lead->addUpdatedField('deliverability_status', 'soft_bounce');
+                            $this->leadModel->saveEntity($lead, false);
+                            file_put_contents('/tmp/bounce_debug.log', date('Y-m-d H:i:s') . " - Updated status to bounced\n", FILE_APPEND);
+                       }
                     }
                     break;
                 }
@@ -105,7 +107,11 @@ class EmailSendSubscriber implements EventSubscriberInterface
         }
         @file_put_contents('/tmp/email_send_event.log', "  Email ID: " . $email->getId() . "\n", FILE_APPEND);
         $lead = $event->getLead();
-        $emailAddress = $lead['email'] ?? null;
+        if (is_array($lead)) {
+            // Convert array → entity
+            $lead = $this->leadModel->getEntity($lead['id']);
+        }
+        $emailAddress = $lead->getEmail();
 
         if (!$emailAddress) {
             @file_put_contents('/tmp/email_send_event.log', "  No email address found\n", FILE_APPEND);
@@ -125,15 +131,25 @@ class EmailSendSubscriber implements EventSubscriberInterface
 
         if (!empty($errors)) {
             @file_put_contents('/tmp/email_send_event.log', "  Errors found: " . json_encode($errors) . "\n", FILE_APPEND);
-            $this->deliveryReporter->reportFailure(
+            $apiSucceeded = $this->deliveryReporter->reportFailure(
                 $email, new \DateTime(), "-100", "Domain error",
                 'failure'
             );
+            if ($apiSucceeded) {
+                //SaveLead
+                $lead->addUpdatedField('deliverability_status', 'hard_bounce');
+                $this->leadModel->saveEntity($lead, false);
+            }
         } else {
             @file_put_contents('/tmp/email_send_event.log', "  No errors - email sent successfully\n", FILE_APPEND);
-            $this->deliveryReporter->reportDelivery(
-                $lead['email'], new \DateTime(), 250, 'OK'
+            $apiSucceeded = $this->deliveryReporter->reportDelivery(
+                $lead->getEmail(), new \DateTime(), 250, 'OK', 'sent'
             );
+            if ($apiSucceeded) {
+                //SaveLead
+                $lead->addUpdatedField('deliverability_status', 'sent');
+                $this->leadModel->saveEntity($lead, false);
+            }
         }
     }
 
@@ -143,19 +159,47 @@ class EmailSendSubscriber implements EventSubscriberInterface
      */
     public function onEmailOpen(EmailOpenEvent $event)
     {
-        @file_put_contents('/tmp/email_open_event.log', date('Y-m-d H:i:s') . " - onEmailOpen event fired\n", FILE_APPEND);
-        $email = $event->getEmail();
+        @file_put_contents('/tmp/email_open_event.log', date('Y-m-d H:i:s') . " - onEmailOpen fired\n", FILE_APPEND);
+    
         $lead = $event->getLead();
-        
-        if (!$lead || !isset($lead['email'])) {
+    
+        // Ensure we have a Lead entity
+        if (is_array($lead)) {
+            if (!isset($lead['id'])) {
+                @file_put_contents('/tmp/email_open_event.log', " - Lead array missing ID, abort\n", FILE_APPEND);
+                return;
+            }
+            $lead = $this->leadModel->getEntity($lead['id']);
+        }
+    
+        if (!$lead) {
+            @file_put_contents('/tmp/email_open_event.log', " - No Lead entity found, abort\n", FILE_APPEND);
             return;
         }
-
-        $this->deliveryReporter->reportDelivery(
-            $lead['email'], new \DateTime(), 250, 'OK'
+    
+        $email = $lead->getEmail();
+        if (!$email) {
+            @file_put_contents('/tmp/email_open_event.log', " - Lead has no email, abort\n", FILE_APPEND);
+            return;
+        }
+    
+        @file_put_contents('/tmp/email_open_event.log', " - Reporting delivery for $email\n", FILE_APPEND);
+    
+        $apiSucceeded = $this->deliveryReporter->reportDelivery(
+            $email,
+            new \DateTime(),
+            250,
+            'OK',
+            'delivered'
         );
+    
+        if ($apiSucceeded) {
+            $lead->addUpdatedField('deliverability_status', 'deliverable');
+            $this->leadModel->saveEntity($lead, false);
+            @file_put_contents('/tmp/email_open_event.log', " - deliverability_status updated\n", FILE_APPEND);
+        }
     }
-
+    
     /**
      * Email failed
      */
@@ -168,10 +212,15 @@ class EmailSendSubscriber implements EventSubscriberInterface
         }
 
         $lead = $event->getLead();
-        $email = $lead['email'] ?? null;
+        $email = $lead->getEmail();
         
         if (!$email) {
             return;
+        }
+
+        if (is_array($lead)) {
+            // Convert array → entity
+            $lead = $this->leadModel->getEntity($lead['id']);
         }
 
         $reason = method_exists($event, 'getReason') ? $event->getReason() : 'Unknown error';
@@ -182,11 +231,15 @@ class EmailSendSubscriber implements EventSubscriberInterface
         // Extract SMTP code from reason
         preg_match('/\b([245]\d{2})\b/', $reason, $matches);
         $smtpCode = $matches[1] ?? 400;
-
-        $this->deliveryReporter->reportFailure(
-            $email, new \DateTime(), $smtpCode, $reason,
-            $isSoftBounce ? 'soft_bounce' : 'hard_bounce'
+        $bounceType = $isSoftBounce ? 'soft_bounce' : 'hard_bounce';
+        $apiSucceeded = $this->deliveryReporter->reportFailure(
+            $email, new \DateTime(), $smtpCode, $reason, $bounceType
         );
+        if ($apiSucceeded) {
+            //SaveLead
+            $lead->addUpdatedField('deliverability_status', $bounceType);
+            $this->leadModel->saveEntity($lead, false);
+        }
     }
 
     private function isSoftBounce($reason)

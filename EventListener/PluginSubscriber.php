@@ -85,6 +85,7 @@ class PluginSubscriber implements EventSubscriberInterface
                 ['label' => 'Deliverable', 'value' => 'deliverable'],
                 ['label' => 'Hard Bounce', 'value' => 'hard_bounce'],
                 ['label' => 'Soft Bounce', 'value' => 'soft_bounce'],
+                ['label' => 'Email Sent', 'value' => 'sent'],
                 ['label' => 'Unknown', 'value' => 'unknown'],
                 ['label' => 'Not Checked', 'value' => 'not_checked'],
             ]

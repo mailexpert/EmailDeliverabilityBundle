@@ -4,7 +4,7 @@ declare(strict_types=1);
 return [
     'name'        => 'Email Deliverability Plugin',
     'description' => 'Checks contact email deliverability using external API.',
-    'version'     => '1.3',
+    'version'     => '1.4',
     'author'      => 'Mail Xpert',
     
     'services' => [
@@ -14,6 +14,7 @@ return [
                 'arguments' => [
                     'mautic.plugin.emaildeliverability.helper',
                     'mautic.lead.model.lead',
+                    'mautic.lead.model.field',
                     'monolog.logger.mautic',
                 ],
                 'tags' => [

@@ -56,7 +56,7 @@ php bin/console cache:clear
 4. **Enable the plugin** by toggling "Published" to ON
 5. Configure the API settings:
    - **API URL**: `https://emaildelivery.space/me/checkemail` (default)
-   - **API Key**: Get your API key from [https://emaildelivery.space/](https://emaildelivery.space/) or send an email to mailto:apikey@emaildelivery.space
+   - **API Key**: Get your API key from [https://emaildelivery.space/](https://emaildelivery.space/) or send an email to apikey@emaildelivery.space
 6. Click **Save & Close**
 
 ### 2. Clear Cache

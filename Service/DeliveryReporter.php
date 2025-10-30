@@ -70,7 +70,10 @@ class DeliveryReporter
         }
     }
 
-    /**                                                                                                    * Record email send for later correlation                                                             */                                                                                                   public function recordEmailSend($email, \DateTime $sendDate, $emailId = null)
+    /**
+     * Record email send for later correlation
+     */
+    public function recordEmailSend($email, \DateTime $sendDate, $emailId = null)
     {
         @file_put_contents('/tmp/delivery_reporter_record.log', date('Y-m-d H:i:s') . " - recordEmailSend called for: $email\n", FILE_APPEND);
         $this->logger->info('recordEmailSend called', [
@@ -108,11 +111,11 @@ class DeliveryReporter
     /**
      * Report successful delivery
      */
-    public function reportDelivery($email, \DateTime $deliveredDate, $smtpCode = 250, $smtpMessage = 'OK')
+    public function reportDelivery($email, \DateTime $deliveredDate, $smtpCode = 250, $smtpMessage = 'OK', $status = 'sent')
     {
         @file_put_contents('/tmp/delivery_reporter_delivery.log', date('Y-m-d H:i:s') . " - reportDelivery called for: $email\n", FILE_APPEND);
         if (!$this->isEnabled()) {
-            return;
+            return false;
         }
 
         $sendDate = $this->getSendDate($email);
@@ -127,10 +130,10 @@ class DeliveryReporter
             'soft_bounce_reason' => '',
             'smtp_code' => (int)$smtpCode,
             'smtp_message' => $smtpMessage,
-            'status' => 'delivered',
+            'status' => $status,
         ];
 
-        $this->sendToApi($payload, $email);
+        return $this->sendToApi($payload, $email);
     }
 
     /**
@@ -140,7 +143,7 @@ class DeliveryReporter
     {
         @file_put_contents('/tmp/delivery_reporter_failure.log', date('Y-m-d H:i:s') . " - reportFailure called for: $email\n", FILE_APPEND);
         if (!$this->isEnabled()) {
-            return;
+            return false;
         }
 
         $sendDate = $this->getSendDate($email);
@@ -160,7 +163,7 @@ class DeliveryReporter
             'status' => 'failed',
         ];
 
-        $this->sendToApi($payload, $email);
+        return $this->sendToApi($payload, $email);
     }
 
     /**
@@ -176,7 +179,7 @@ class DeliveryReporter
             
             if (!$integration) {
                 @file_put_contents('/tmp/delivery_reporter_api.log', "  Integration not found\n", FILE_APPEND);
-                return;
+                return false;
             }
 
             $apiUrl = $integration->getSubmitUrl();
@@ -187,7 +190,7 @@ class DeliveryReporter
 
             if (empty($apiUrl) || empty($apiKey)) {
                 $this->logger->warning("Email Deliverability API not configured properly");
-                return;
+                return false;
             }
 
             $response = $this->client->post($apiUrl, [
@@ -217,13 +220,14 @@ class DeliveryReporter
             }
 
             unset($this->cache[$email]);
-
+            return true;
         } catch (\Exception $e) {
             @file_put_contents('/tmp/delivery_reporter_api.log', "  EXCEPTION: " . $e->getMessage() . "\n", FILE_APPEND);
             $this->logger->error("Failed to report email delivery to API", [
                 'email' => $email,
                 'error' => $e->getMessage(),
             ]);
+            return false;
         }
     }
 }

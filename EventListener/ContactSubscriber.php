@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace MauticPlugin\EmailDeliverabilityBundle\EventListener;
 
-use Mautic\LeadBundle\Event\LeadEvent;
+use Mautic\CoreBundle\CoreEvents;
 use Mautic\LeadBundle\LeadEvents;
 use Mautic\LeadBundle\Model\LeadModel;
-use Mautic\CoreBundle\CoreEvents;
+use Mautic\LeadBundle\Model\FieldModel;
 use Mautic\CoreBundle\Event\CustomContentEvent;
+use Mautic\LeadBundle\Event\LeadEvent;
 use MauticPlugin\EmailDeliverabilityBundle\Helper\DeliverabilityChecker;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Psr\Log\LoggerInterface;
@@ -17,17 +18,20 @@ class ContactSubscriber implements EventSubscriberInterface
 {
     private $checker;
     private $leadModel;
+    private $fieldModel;
     private $logger;
     private static $processed = [];
 
     public function __construct(
         DeliverabilityChecker $checker, 
         LeadModel $leadModel,
+        FieldModel $fieldModel,
         LoggerInterface $logger
     ) {
         file_put_contents('/tmp/constructor.log', date('Y-m-d H:i:s') . " - Constructor called\n", FILE_APPEND);
         $this->checker = $checker;
         $this->leadModel = $leadModel;
+        $this->fieldModel = $fieldModel;
         $this->logger = $logger;
     }
 
@@ -74,14 +78,16 @@ class ContactSubscriber implements EventSubscriberInterface
         }
 
         $status = $lead->getFieldValue('deliverability_status') ?? 'not_checked';
+        $label = $this->getLabelForField('deliverability_status', $status);
         
         // Color coding based on status
         $colors = [
             'deliverable' => 'success',
             'hard_bounce' => 'danger',
             'soft_bounce' => 'warning',
-            'unknown' => 'info',
-            'not_checked' => 'default',
+            'sent' => 'primary',
+            'unknown' => 'default',
+            'not_checked' => 'info',
         ];
         
         $color = $colors[$status] ?? 'default';
@@ -89,12 +95,14 @@ class ContactSubscriber implements EventSubscriberInterface
         $html = sprintf(
             '<div class="panel panel-default"><div class="panel-heading"><h3 class="panel-title">Email Deliverability</h3></div><div class="panel-body"><span class="label label-%s">%s</span></div></div>',
             $color,
-            ucwords(str_replace('_', ' ', $status))
+            //ucwords(str_replace('_', ' ', $status))
+            $label
         );
         $html = sprintf(
             '<h6 class="fw-sb">Deliverability Status</h6><p><div class="panel-body"><span class="label label-%s">%s</span></div></p>',
             $color,
-            ucwords(str_replace('_', ' ', $status))
+            //ucwords(str_replace('_', ' ', $status))
+            $label
         );
 
         //file_put_contents('/tmp/deliverability_debug.log', date('Y-m-d H:i:s') . " - onViewInjectCustomContent html $html \n", FILE_APPEND);
@@ -147,4 +155,32 @@ class ContactSubscriber implements EventSubscriberInterface
         
         self::$processed[$leadId] = true;
     }
+
+    public function getLabelForField($alias, $value)
+    {
+
+        $field = $this->fieldModel->getRepository()->findOneBy(['alias' => $alias]);
+        $label = $value;
+        $this->logger->error("=== DEBUG Field: $alias and value $value ===");
+        if ($field) {
+            $properties = $field->getProperties();
+            // Debug: Log what we're getting
+            // TEMPORARY DEBUG - Remove after checking logs
+            // Use Mautic's logger
+            $this->logger->error("=== DEBUG Field: $alias ===");
+            $this->logger->error("Value: $value");
+            $this->logger->error("Properties: ", $properties);
+            $this->logger->error("=== END DEBUG ===");
+            if (isset($properties['list']) && is_array($properties['list'])) {
+                foreach ($properties['list'] as $option) {
+                    if (isset($option['value']) && $option['value'] === $value) {
+                        $label = $option['label'];
+                        break;
+                    }
+                }
+            }
+        }
+        return $label;
+    }
+
 }
