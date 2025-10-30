@@ -77,10 +77,14 @@ Once installed and configured, the plugin works automatically:
 
 The plugin stores various statuses returned by your API, such as:
 - `deliverable` - Email is valid and deliverable
-- `undeliverable` - Email is invalid or undeliverable
-- `risky` - Email might be valid but risky to send to
+- `soft bounce` - Email has received Soft Bounce response
+- `hard bounce` - Email has received Hard Bounce response
+- `sent` - Email is used to send an email (but no additional info for the outcome)
 - `unknown` - Unable to determine status
 - `not_checked` - Email hasn't been checked yet
+
+
+[![Deliverability Statuses](https://emaildelivery.space/assets/images/deliverability_statuses.jpg)](https://emaildelivery.space/assets/images/deliverability_statuses.jpg)
 
 ## API Integration
 
@@ -89,10 +93,12 @@ The plugin integrates with the Email Deliverability API service at [https://emai
 ### Getting Your API Key
 
 1. Visit [https://emaildelivery.space/](https://emaildelivery.space/)
-2. Sign up or log in to your account
+2. Sign up or log in to your account 
 3. Navigate to your API settings
 4. Copy your API key
 5. Add it to the plugin configuration in Mautic (Settings → Plugins → Email Deliverability Plugin)
+
+Alternatively, send an email to apikey@emaildelivery.space
 
 ### Default API Endpoint
 
