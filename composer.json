@@ -1,5 +1,5 @@
 {
-  "name": "mailxpert/email-deliverability-bundle",
+  "name": "mailexpert/email-deliverability-bundle",
   "description": "Checks contact email deliverability using external API.",
   "type": "mautic-plugin",
   "version": "1.4.0",
