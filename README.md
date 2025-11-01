@@ -86,6 +86,10 @@ The plugin stores various statuses returned by your API, such as:
 
 [![Deliverability Statuses](https://emaildelivery.space/assets/images/deliverability_statuses.jpg)](https://emaildelivery.space/assets/images/deliverability_statuses.jpg)
 
+### Mautic UI
+
+[![Mautic Contacts UI](https://emaildelivery.space/images/plugin_screenshot.png)](https://emaildelivery.space/images/plugin_screenshot.png)
+
 ## API Integration
 
 The plugin integrates with the Email Deliverability API service at [https://emaildelivery.space/](https://emaildelivery.space/).
