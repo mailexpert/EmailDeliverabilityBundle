@@ -88,7 +88,7 @@ The plugin stores various statuses returned by your API, such as:
 
 ### Mautic UI
 
-[![Mautic Contacts UI](https://emaildelivery.space/images/plugin_screenshot.png)](https://emaildelivery.space/images/plugin_screenshot.png)
+[![Mautic Contacts UI](https://emaildelivery.space/assets/images/plugin_screenshot.png)](https://emaildelivery.space/assets/images/plugin_screenshot.png)
 
 ## API Integration
 
