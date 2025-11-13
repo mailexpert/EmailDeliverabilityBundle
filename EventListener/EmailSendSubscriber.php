@@ -111,6 +111,10 @@ class EmailSendSubscriber implements EventSubscriberInterface
             // Convert array → entity
             $lead = $this->leadModel->getEntity($lead['id']);
         }
+        if (!$lead) {
+            @file_put_contents('/tmp/email_send_event.log', "  No lead object found\n", FILE_APPEND);
+            return;
+        }
         $emailAddress = $lead->getEmail();
 
         if (!$emailAddress) {
