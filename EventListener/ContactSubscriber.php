@@ -28,7 +28,7 @@ class ContactSubscriber implements EventSubscriberInterface
         FieldModel $fieldModel,
         LoggerInterface $logger
     ) {
-        file_put_contents('/tmp/constructor.log', date('Y-m-d H:i:s') . " - Constructor called\n", FILE_APPEND);
+        file_put_contents('/tmp/constructor.log', date('Y-m-d H:i:s') . " - Constructor called for ContactSubscriber\n", FILE_APPEND);
         $this->checker = $checker;
         $this->leadModel = $leadModel;
         $this->fieldModel = $fieldModel;
