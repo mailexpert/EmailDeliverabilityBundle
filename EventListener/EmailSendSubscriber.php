@@ -311,6 +311,7 @@ class EmailSendSubscriber implements EventSubscriberInterface
                         $emailAddress, new \DateTime(), $bounceData['smtp_code'], $bounceData['smtp_message']               , $bounceData['bounce_type']
                     );
                     if ($apiSucceeded) {
+                        @file_put_contents('/tmp/email_parse_event.log', "Api submission sucessful\n", FILE_APPEND);
                         $lead = $this->getLeadByEmail($bounceData['recipient_email']);
                         if (!$lead) {
                             @file_put_contents('/tmp/email_parse_event.log', "  No lead object found\n", FILE_APPEND);
@@ -319,6 +320,9 @@ class EmailSendSubscriber implements EventSubscriberInterface
                         //SaveLead
                         $lead->addUpdatedField('deliverability_status', $bounceData['bounce_type']);
                         $this->leadModel->saveEntity($lead, false);
+                    }
+                    else {
+                        @file_put_contents('/tmp/email_parse_event.log', "Api submission failed\n", FILE_APPEND);
                     }
                 }
             }
