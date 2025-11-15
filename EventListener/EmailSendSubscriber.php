@@ -640,6 +640,7 @@ class EmailSendSubscriber implements EventSubscriberInterface
              "smtp_message" => "550-Mailbox does not exist. If this is a new account, please allow 30 minutes for setup.",
              "bounce_category" => "mailbox_not_found",
              "bounce_type" => "hard_bounce",
+            ],
             ["pattern" => "/550-requested action not taken: mailbox unavailable 550 for explanation visit/i",
              "smtp_message" => "550-Requested action not taken: mailbox unavailable. For explanation visit",
              "bounce_category" => "mailbox_not_found",
