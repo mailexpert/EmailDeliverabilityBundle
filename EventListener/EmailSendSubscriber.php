@@ -603,12 +603,64 @@ class EmailSendSubscriber implements EventSubscriberInterface
         return 'soft_bounce';
     }
 
-
     private function determineBounceTypeAndCategory($body, array &$bounceData)
     {
         $smtpCode = $bounceData['smtp_code'];
         $smtpMessage = strtolower($bounceData['smtp_message'] ?? '');
         $bodyLower = strtolower($body);
+        //TEST REGEX MATCH ON https://regex101.com/
+        $gmailBounceIndicators = [
+            [
+             "pattern" => "/550-5\.1\.1 the email account that you tried to reach does not exist\. please try 550-5\.1\.1 double-checking the recipient's email address for typos or 550-5\.1\.1 unnecessary spaces\. for more information, go to 550 5\.1\.1 https:\/\/support\.google\.com\/mail\/\?p=nosuchuser/i",
+             "smtp_message" => "550-5.1.1 The email account that you tried to reach does not exist. Please try double-checking the recipient's email address for typos or unnecessary spaces. For more information, go to https://support.google.com/mail/?p=NoSuchUser",
+             "bounce_category" => "invalid_recipient",
+             "bounce_type" => "hard_bounce",
+            ],
+            ["pattern" => "/452-4\.2\.2 the recipient's inbox is out of storage space\. please direct the 452-4\.2\.2 recipient to 452 4\.2\.2 https:\/\/support\.google\.com\/mail\/\?p=overquotatemp/i",
+             "smtp_message" => "452-4.2.2 The recipient's inbox is out of storage space. Please direct the recipient to https://support.google.com/mail/?p=OverQuotaTemp",
+             "bounce_category" => "mailbox_full",
+             "bounce_type" => "soft_bounce",
+            ],
+            ["pattern" => "/552-5\.2\.2 the recipient's inbox is out of storage space and inactive\. please 552-5\.2\.2 direct the recipient to 552 5\.2\.2 https:\/\/support\.google\.com\/mail\/\?p=overquotaperm/i",
+             "smtp_message" => "552-5.2.2 The recipient's inbox is out of storage space and inactive. Please direct the recipient to https://support.google.com/mail/?p=OverQuotaPerm",
+             "bounce_category" => "mailbox_full",
+             "bounce_type" => "soft_bounce",
+            ],
+            ["pattern" => "/host or domain name not found\. name service error for name=.+ type=aaaa: host not found/i",
+             "smtp_message" => "Host or domain name not found. Name service error for name=<hostname> type=AAAA: Host not found",
+             "bounce_category" => "host_not_found",
+             "bounce_type" => "hard_bounce",
+            ],
+            ["pattern" => "/host or domain name not found\. name service error for name=.+ type=mx: host not found/i",
+             "smtp_message" => "Host or domain name not found. Name service error for name=<hostname> type=MX: Host not found",
+             "bounce_category" => "host_not_found",
+             "bounce_type" => "hard_bounce",
+            ],
+            ["pattern" => "/550-mailbox does not exist\. if this is a new account, please allow 30 minutes 550 for setup/i",
+             "smtp_message" => "550-Mailbox does not exist. If this is a new account, please allow 30 minutes for setup.",
+             "bounce_category" => "mailbox_not_found",
+             "bounce_type" => "hard_bounce",
+            ["pattern" => "/550-requested action not taken: mailbox unavailable 550 for explanation visit/i",
+             "smtp_message" => "550-Requested action not taken: mailbox unavailable. For explanation visit",
+             "bounce_category" => "mailbox_not_found",
+             "bounce_type" => "hard_bounce",
+            ],
+        ];
+        
+        $bodyNormalized = preg_replace('/\s+/', ' ', strtolower($body));
+        @file_put_contents('/tmp/email_parse_event.log',date('Y-m-d H:i:s') . " - body:" .$bodyNormalized." \n", FILE_APPEND);
+        foreach ($gmailBounceIndicators as $indicator) {
+            @file_put_contents('/tmp/email_parse_event.log',date('Y-m-d H:i:s') . " - pattern:" .$indicator['pattern']." \n", FILE_APPEND);
+            if (preg_match($indicator['pattern'], $bodyNormalized) === 1) {
+                $bounceData['bounce_type'] = $indicator['bounce_type'];
+                $bounceData['bounce_category'] = $indicator['bounce_category'];
+                $bounceData['smtp_message'] = $indicator['smtp_message'];
+                return;
+            }
+            else {
+                @file_put_contents('/tmp/email_parse_event.log',date('Y-m-d H:i:s') . " - pattern:failed \n", FILE_APPEND);
+            }
+        }
         
         // Check for blacklist/blocklist indicators first
         $blacklistIndicators = [
@@ -618,7 +670,6 @@ class EmailSendSubscriber implements EventSubscriberInterface
             'blocked',
             'on our block',
             'reputation',
-            'spam',
             'blacklisted',
             'listed in',
             'RBL',
@@ -630,9 +681,15 @@ class EmailSendSubscriber implements EventSubscriberInterface
         ];
         
         $isBlacklisted = false;
+        $blacklistIndicator="";
         foreach ($blacklistIndicators as $indicator) {
             if (stripos($bodyLower, $indicator) !== false || stripos($smtpMessage, $indicator) !== false) {
                 $isBlacklisted = true;
+                $blacklistIndicator = $indicator;
+                //@file_put_contents('/tmp/email_parse_event.log', 
+                //    date('Y-m-d H:i:s') . " - found bounce indicator: ". $indicator . " in bodyLower: ". $bodyLower. " or smtpMessage: ".$smtpMessage."\n", 
+                //    FILE_APPEND
+                //);
                 break;
             }
         }
@@ -640,6 +697,7 @@ class EmailSendSubscriber implements EventSubscriberInterface
         if ($isBlacklisted) {
             $bounceData['bounce_type'] = 'blocked';
             $bounceData['bounce_category'] = 'sender_blocked';
+            $bounceData['bounce_indicator'] = $blacklistIndicator;
             return;
         }
         
@@ -756,5 +814,18 @@ class EmailSendSubscriber implements EventSubscriberInterface
             $bounceData['bounce_type'] = 'unknown';
             $bounceData['bounce_category'] = 'unknown';
         }
+    }
+
+    private function replaceAfterFirstOccurrence($haystack, $needle, $replacement) {
+        $parts = explode($needle, $haystack, 2); // Split into 2 parts at first occurrence
+        
+        if (count($parts) < 2) {
+            return $haystack; // Needle not found
+        }
+        
+        // Replace all occurrences in the second part
+        $parts[1] = str_replace($needle, $replacement, $parts[1]);
+        
+        return implode($needle, $parts);
     }
 }

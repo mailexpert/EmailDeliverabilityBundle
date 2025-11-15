@@ -145,6 +145,8 @@ class DeliveryReporter
         if (!$this->isEnabled()) {
             return false;
         }
+        //Just in case email address is in the reason, replace with generic parameter
+        $reason = str_replace($email, "<email>", $reason);
 
         $sendDate = $this->getSendDate($email);
 
